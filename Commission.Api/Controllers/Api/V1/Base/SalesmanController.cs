@@ -94,14 +94,7 @@ namespace Commission.Api.Controllers.Api.V1.Base
         {
             using (_dbContext)
             {
-                //var query = _dbContext.BaseSalesman.AsQueryable();
-                //var queryBind = _dbContext.UserSalesmanMapping.AsQueryable();
-                //var list = (from p in query
-                //            where !(from f in queryBind select f.Id).Contains(p.Id)
-                //            select p).ToList();
-                //var data = list.Select(_mapper.Map<BaseSalesman, SalesmanSelectJsonModel>);
-                DataTable dt = _dbContext.Database.SqlQuery(string.Format(@"SELECT t1.Id as value,t1.Name as text,ISNULL(t2.id,-1)canUse FROM dbo.BaseSalesMan
-                                    t1 LEFT JOIN dbo.UserSalesmanMapping t2 ON t1.Id = t2.SalesmanId"));
+                DataTable dt = _dbContext.Database.SqlQuery(string.Format(@" SELECT t1.Id as value,t1.Name as text,ISNULL(t2.SalesmanId,0)canUse FROM dbo.BaseSalesMan t1 LEFT JOIN dbo.UserSalesmanMapping t2 ON t1.Id =t2.SalesmanId"));
                 return Ok(new
                 {
                     state = "success",
@@ -333,10 +326,10 @@ namespace Commission.Api.Controllers.Api.V1.Base
             using (_dbContext)
             {
                 var response = ResponseModelFactory.CreateInstance;
-                DataTable dtCheck = _dbContext.Database.SqlQuery(string.Format(@"SELECT 1 FROM dbo.vBillRecord WHERE FPersonID IN ({0})", ids));
+                DataTable dtCheck = _dbContext.Database.SqlQuery(string.Format(@"SELECT 1 FROM dbo.vBillRecord WHERE FSalesmanId IN ({0})", ids));
                 if (dtCheck != null && dtCheck.Rows.Count > 0)
                 {
-                    response.SetFailed("发现护工档案已经存在记录,无法删除!");
+                    response.SetFailed("发现业务员档案已经存在记录,无法删除!");
                     return response;
                 }
                 else

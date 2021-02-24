@@ -5,13 +5,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Commission.Api.Entities
+namespace Commission.Api.ViewModels.Bus
 {
-    public class T_BillEntry
+    public class BillEntryCreateModel
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int FEntryID { get; set; }
         public int FId { get; set; }
         public int FSoftwareId { get; set; }
         public string FModule { get; set; } 

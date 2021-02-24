@@ -159,5 +159,7 @@ namespace Commission.Api.Entities
         public DbSet<T_Bill> T_Bill { get; set; }
         public DbSet<T_BillEntry> T_BillEntry { get; set; }
         public DbSet<UserSalesmanMapping> UserSalesmanMapping { get; set; }
+        public DbSet<vUserSalesmanMapping> vUserSalesmanMapping { get; set; }
+        public DbSet<vBillRecord> vBillRecord { get; set; }
     }
 }

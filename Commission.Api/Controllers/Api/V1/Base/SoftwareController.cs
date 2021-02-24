@@ -312,10 +312,10 @@ namespace Commission.Api.Controllers.Api.V1.Base
             using (_dbContext)
             {
                 var response = ResponseModelFactory.CreateInstance;
-                DataTable dtCheck = _dbContext.Database.SqlQuery(string.Format(@"SELECT 1 FROM dbo.vBillRecord WHERE FRecWayID IN ({0})", ids));
+                DataTable dtCheck = _dbContext.Database.SqlQuery(string.Format(@"SELECT 1 FROM dbo.vBillRecord WHERE FSoftwareId IN ({0})", ids));
                 if (dtCheck != null && dtCheck.Rows.Count > 0)
                 {
-                    response.SetFailed("发现付款方式档案已经存在记录,无法删除!");
+                    response.SetFailed("发现软件产品档案已经存在记录,无法删除!");
                     return response;
                 }
                 else

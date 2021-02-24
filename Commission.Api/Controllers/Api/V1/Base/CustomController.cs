@@ -84,8 +84,7 @@ namespace Commission.Api.Controllers.Api.V1.Base
             {
                 var query = _dbContext.BaseCustom.AsQueryable();
 
-                var list = query.ToList();
-                var totalCount = query.Count();
+                var list = query.ToList(); 
                 var data = list.Select(_mapper.Map<BaseCustom, CustomSelectJsonModel>);
 
                 return Ok(new
@@ -321,17 +320,17 @@ namespace Commission.Api.Controllers.Api.V1.Base
             using (_dbContext)
             {
                 var response = ResponseModelFactory.CreateInstance;
-                DataTable dtCheck = _dbContext.Database.SqlQuery(string.Format(@"SELECT 1 FROM dbo.vBillRecord WHERE FHospitalID IN ({0})", ids));
+                DataTable dtCheck = _dbContext.Database.SqlQuery(string.Format(@"SELECT 1 FROM dbo.vBillRecord WHERE FCustomId IN ({0})", ids));
                 if (dtCheck != null && dtCheck.Rows.Count > 0)
                 {
-                    response.SetFailed("发现护理方式档案已经存在记录,无法删除!");
+                    response.SetFailed("发现客户档案已经存在记录,无法删除!");
                     return response;
                 }
                 else
                 {
                     var parameters = ids.Split(",").Select((id, index) => new SqlParameter(string.Format("@p{0}", index), id)).ToList();
                     var parameterNames = string.Join(", ", parameters.Select(p => p.ParameterName));
-                    var sql = string.Format("UPDATE DncHospital SET IsDeleted=@IsDeleted WHERE Id IN ({0})", parameterNames);
+                    var sql = string.Format("UPDATE BaseCustom SET IsDeleted=@IsDeleted WHERE Id IN ({0})", parameterNames);
                     parameters.Add(new SqlParameter("@IsDeleted", (int)isDeleted));
                     _dbContext.Database.ExecuteSqlCommand(sql, parameters);
                     response.SetSuccess();
@@ -353,7 +352,7 @@ namespace Commission.Api.Controllers.Api.V1.Base
 
                 var parameters = ids.Split(",").Select((id, index) => new SqlParameter(string.Format("@p{0}", index), id)).ToList();
                 var parameterNames = string.Join(", ", parameters.Select(p => p.ParameterName));
-                var sql = string.Format("UPDATE DncHospital SET Status=@Status WHERE Id IN ({0})", parameterNames);
+                var sql = string.Format("UPDATE BaseCustom SET Status=@Status WHERE Id IN ({0})", parameterNames);
                 parameters.Add(new SqlParameter("@Status", (int)status));
                 _dbContext.Database.ExecuteSqlCommand(sql, parameters);
                 var response = ResponseModelFactory.CreateInstance;

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using NPinyin;
+using System;
+using System.Text;
 using static Commission.Api.Entities.Enums.CommonEnum;
 
 namespace Commission.Api.ViewModels.Base.Salesman
@@ -18,6 +20,8 @@ namespace Commission.Api.ViewModels.Base.Salesman
         /// </summary>
         public string Name { get; set; }
 
+        public string Code { get; set; }
+
         public int Value
         {
             get
@@ -31,6 +35,19 @@ namespace Commission.Api.ViewModels.Base.Salesman
             get
             {
                 return Name;
+            }
+        }
+        public string sword
+        {
+            get
+            {
+                string[] pinyins = Pinyin.GetPinyin(Name).ToUpper().Split(" ");
+                string str="";
+                foreach (string pinyin in pinyins)
+                {
+                    str += pinyin[0];
+                }
+                return Code + "_" + str;
             }
         }
     }

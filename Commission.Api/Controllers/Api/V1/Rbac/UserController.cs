@@ -323,8 +323,7 @@ namespace Commission.Api.Controllers.Api.V1.Rbac
             var response = ResponseModelFactory.CreateInstance;
             using (_dbContext)
             {
-                //using (var transaction = _dbContext.Database.BeginTransaction())
-                //{ }
+                
                 var entity = _dbContext.DncUser.FirstOrDefault(x => x.FGuid == model.UserId);
                 if (entity == null)
                 {

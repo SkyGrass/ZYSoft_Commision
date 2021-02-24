@@ -12,6 +12,7 @@ using Commission.Api.ViewModels.Rbac.DncMenu;
 using Commission.Api.ViewModels.Rbac.DncPermission;
 using Commission.Api.ViewModels.Rbac.DncRole;
 using Commission.Api.ViewModels.Rbac.DncUser;
+using Commission.Api.ViewModels.Bus;
 
 namespace Commission.Api.Configurations
 {
@@ -85,6 +86,10 @@ namespace Commission.Api.Configurations
             #region BaseComparison
             CreateMap<UserSalesmanMapping, UserSalesmanCreateViewModel>();
             CreateMap<UserSalesmanCreateViewModel, UserSalesmanMapping>();
+            #endregion
+
+            #region vBillRecord
+            CreateMap<vBillRecord, BillRecordJsonModel>(); 
             #endregion
 
         }

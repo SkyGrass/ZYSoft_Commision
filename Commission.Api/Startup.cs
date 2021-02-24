@@ -79,7 +79,7 @@ namespace Commission.Api
                 //options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"))
                 // 如果使用SQL Server 2008数据库，请添加UseRowNumberForPaging的选项
                 // 参考资料:https://github.com/aspnet/EntityFrameworkCore/issues/4616
-                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"),b=>b.UseRowNumberForPaging())
+                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"), b => b.UseRowNumberForPaging())
                 );
 
             services.AddSwaggerGen(c =>
@@ -96,6 +96,8 @@ namespace Commission.Api
             {
                 config.AddLog4Net();
             });
+
+            services.AddDirectoryBrowser();
         }
 
         /// <summary>
@@ -153,6 +155,7 @@ namespace Commission.Api
                 //c.RoutePrefix = "";
             });
 
+            app.UseDirectoryBrowser();
         }
     }
 }

@@ -109,40 +109,9 @@
         }
 
         /// <summary>
-        /// 是否对账确认
+        /// 
         /// </summary>
-        public enum IsConfirm
-        {
-            All = -1,
-            /// <summary>
-            /// 否
-            /// </summary>
-            No = 0,
-            /// <summary>
-            /// 是
-            /// </summary>
-            Yes = 1
-        }
-
-        /// <summary>
-        /// 是否计算完成
-        /// </summary>
-        public enum IsFinish
-        {
-            All = -1,
-            /// <summary>
-            /// 否
-            /// </summary>
-            No = 0,
-            /// <summary>
-            /// 是
-            /// </summary>
-            Yes = 1
-        }
-        /// <summary>
-        /// 是否生成凭证
-        /// </summary>
-        public enum IsBuild
+        public enum AuditState
         {
             All = -1,
             /// <summary>
