@@ -8,19 +8,18 @@ using Commission.Api.Models.Response;
 using Commission.Api.RequestPayload.Bus;
 using Commission.Api.Utils;
 using Commission.Api.ViewModels.Bus;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 using static Commission.Api.Entities.Enums.CommonEnum;
-using System.Data.SqlClient;
-using Newtonsoft.Json;
-using System.IO;
-using Microsoft.AspNetCore.Hosting;
 
 namespace Commission.Api.Controllers.Api.V1.Bus
 {
@@ -31,7 +30,7 @@ namespace Commission.Api.Controllers.Api.V1.Bus
     [Route("api/v1/bus/[controller]/[action]")]
     [ApiController]
     [CustomAuthorize]
-    public class BillController : ControllerBase
+    public class CalcBillController : ControllerBase
     {
         private readonly DncZeusDbContext _dbContext;
         private readonly IMapper _mapper;
@@ -41,7 +40,7 @@ namespace Commission.Api.Controllers.Api.V1.Bus
         /// </summary>
         /// <param name="dbContext"></param>
         /// <param name="mapper"></param>
-        public BillController(DncZeusDbContext dbContext, IMapper mapper, IHostingEnvironment hostingEnvironment)
+        public CalcBillController(DncZeusDbContext dbContext, IMapper mapper, IHostingEnvironment hostingEnvironment)
         {
             _hostingEnvironment = hostingEnvironment;
             _dbContext = dbContext;
@@ -53,11 +52,11 @@ namespace Commission.Api.Controllers.Api.V1.Bus
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public IActionResult List(BillRecordRequestPayload payload)
+        public IActionResult List(CalcBillRecordRequestPayload payload)
         {
             using (_dbContext)
             {
-                var query = _dbContext.vBillRecord.AsQueryable();
+                var query = _dbContext.vCalcBillRecord.AsQueryable();
                 if (!string.IsNullOrEmpty(payload.Kw))
                 {
                     query = query.Where(x => x.FBillNo.Contains(payload.Kw.Trim()) ||
@@ -68,25 +67,13 @@ namespace Commission.Api.Controllers.Api.V1.Bus
                     query = query.Where(x => (CommonEnum.IsDeleted)(x.FIsDeleted ? 1 : 0) ==
                         payload.IsDeleted);
                 }
-                if (payload.IsCommission > CommonEnum.YesOrNo.All)
-                {
-                    query = query.Where(x => ((CommonEnum.YesOrNo)(x.FIsCommission ? 1 : 0)) == payload.IsCommission);
-                }
                 if (payload.Status > CommonEnum.AuditState.All)
                 {
                     query = query.Where(x => x.FStatus == payload.Status);
                 }
-                if (payload.CustomId > 0)
-                {
-                    query = query.Where(x => x.FCustomId == payload.CustomId);
-                }
                 if (payload.SalesmanId > 0)
                 {
                     query = query.Where(x => x.FSalesmanId == payload.SalesmanId);
-                }
-                if (payload.ConfirmerId > 0)
-                {
-                    query = query.Where(x => x.FConfirmerId == payload.ConfirmerId);
                 }
                 if (!string.IsNullOrEmpty(payload.BeginDate))
                 {
@@ -115,116 +102,20 @@ namespace Commission.Api.Controllers.Api.V1.Bus
 
                 var list = query.Paged(payload.CurrentPage, payload.PageSize).ToList();
                 var totalCount = query.Count();
-                var data = list.Select(_mapper.Map<vBillRecord, BillRecordJsonModel>);
+                var data = list.Select(_mapper.Map<vCalcBillRecord, CalcBillRecordJsonModel>);
                 var response = ResponseModelFactory.CreateResultInstance;
                 response.SetData(data, totalCount);
                 return Ok(response);
             }
         }
 
-        [HttpGet("{ids}")]
-        [ProducesResponseType(200)]
-        public IActionResult CalcListEntry(string ids)
-        {
-            using (_dbContext)
-            {
-                var response = ResponseModelFactory.CreateInstance;
-
-                var sql = string.Format("select * from vBillRecord  where fid in ({0})", ids);
-                var list = _dbContext.Database.SqlQuery(sql).ToList<vBillRecord>();
-                var data = list.Select(_mapper.Map<vBillRecord, BillRecordJsonModel>); response.SetData(data);
-                return Ok(response);
-
-            }
-        }
-
-        [HttpPost]
-        public IActionResult CalcList(BillRecordListRequestPayload payload)
-        {
-            using (_dbContext)
-            {
-                var query = _dbContext.vBillRecordList.AsQueryable();
-                var response = ResponseModelFactory.CreateResultInstance;
-                if (payload.SalesmanId <= 0)
-                {
-                    response.SetData("未指定要查询的业务员信息!");
-                    response.SetFailed();
-                    return Ok(response);
-                }
-
-                if (!string.IsNullOrEmpty(payload.Kw))
-                {
-                    query = query.Where(x => x.FBillNo.Contains(payload.Kw.Trim()) ||
-                    x.FRemark.Contains(payload.Kw.Trim()));
-                }
-                if (payload.IsDeleted > CommonEnum.IsDeleted.All)
-                {
-                    query = query.Where(x => (CommonEnum.IsDeleted)(x.FIsDeleted ? 1 : 0) ==
-                        payload.IsDeleted);
-                }
-                if (payload.IsCommission > CommonEnum.YesOrNo.All)
-                {
-                    query = query.Where(x => ((CommonEnum.YesOrNo)(x.FIsCommission ? 1 : 0)) == payload.IsCommission);
-                }
-                if (payload.Status > CommonEnum.AuditState.All)
-                {
-                    query = query.Where(x => x.FStatus == payload.Status);
-                }
-                if (payload.CustomId > 0)
-                {
-                    query = query.Where(x => x.FCustomId == payload.CustomId);
-                }
-                if (payload.SalesmanId > 0)
-                {
-                    query = query.Where(x => x.FSalesmanId == payload.SalesmanId);
-                }
-                if (payload.ConfirmerId > 0)
-                {
-                    query = query.Where(x => x.FConfirmerId == payload.ConfirmerId);
-                }
-                if (!string.IsNullOrEmpty(payload.BeginDate))
-                {
-                    query = query.Where(x => x.FDate.CompareTo(DateTime.Parse(payload.BeginDate)) >= 0);
-                }
-                if (!string.IsNullOrEmpty(payload.EndDate))
-                {
-                    query = query.Where(x => x.FDate.CompareTo(DateTime.Parse(string.Format(@"{0} 23:59:59", payload.EndDate))) <= 0);
-                }
-
-                query = query.Where(x => x.FIsCalc == false);
-
-                #region 一般用户
-                if (AuthContextService.CurrentUser.UserType == UserType.GeneralUser)
-                {
-                    var entity = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.UserId == AuthContextService.CurrentUser.Guid);
-
-                    if (entity != null)
-                    {
-                        query = query.Where(x => x.FSalesmanId == entity.SalesmanId);
-                    }
-                    else
-                    {
-                        query = query.Where(x => x.FSalesmanId == -1); //没有绑定的一般用户
-                    }
-                }
-                #endregion
-
-
-                var list = query.Paged(payload.CurrentPage, payload.PageSize).ToList();
-                var totalCount = query.Count();
-                var data = list.Select(_mapper.Map<vBillRecordList, BillRecordListJsonModel>);
-
-                response.SetData(data, totalCount);
-                return Ok(response);
-            }
-        }
 
         public IActionResult GenBillNo()
         {
             return Ok(new
             {
                 state = "success",
-                data = string.Format(@"SO{0}", DateTime.Now.ToString("yyyyMMddHHmmss")),
+                data = string.Format(@"CA{0}", DateTime.Now.ToString("yyyyMMddHHmmss")),
                 message = ""
             });
         }
@@ -236,78 +127,93 @@ namespace Commission.Api.Controllers.Api.V1.Bus
         /// <returns></returns>
         [HttpPost]
         [ProducesResponseType(200)]
-        public IActionResult Create(SaveBillForm model)
+        public IActionResult Create(SaveCalcBillForm model)
         {
             var response = ResponseModelFactory.CreateInstance;
             try
             {
-                List<BillEntryCreateModel> listEntry = _mapper.Map<List<T_BillEntry>, List<BillEntryCreateModel>>(model.Entry);
-                int newId = 0;
-                if (model.Form.FId > 0)
+                using (_dbContext)
                 {
-                    _dbContext.Entry(model.Form).State = EntityState.Modified;
-                    var entry = _dbContext.T_BillEntry.Where(f => f.FId == model.Form.FId).ToList();
-                    entry.ForEach(ele =>
+                    List<string> sqlList = new List<string>();
+                    sqlList.Clear();
+                    if (model.Form.FId > 0) //update
                     {
-                        _dbContext.Entry(ele).State = EntityState.Modified;
+                        //delete first 
+                        string delSql = string.Format(@"delete from t_calcBillEntry where FId = {0}", model.Form.FId);
+                        sqlList.Add(delSql);
+                        string updateSql = string.Format(@"Update t_CalcBill Set FSalesmanId ='{0}',FRemark= '{1}' Where FId ='{2}'",
+                            model.Form.FSalesmanId, model.Form.FRemark, model.Form.FId);
+                        sqlList.Add(updateSql);
+                    }
+                    else
+                    {  //add
+                        int newId = new IDHelper(_dbContext).GenId(typeof(T_CalcBill).GetAttributeValue((TableAttribute dna) => dna.Name));
+                        model.Form.FId = newId;
+                        string insertSql = string.Format(@"INSERT INTO dbo.t_CalcBill
+                                                        ( FId ,
+                                                          FBillNo ,
+                                                          FDate ,
+                                                          FSalesmanId ,
+                                                          FBillerId ,
+                                                          FRemark ,
+                                                          FIsDeleted ,
+                                                          FCreatedOn ,
+                                                          FStatus
+                                                        )
+                                                VALUES  ( '{0}' , -- FId - int
+                                                          '{1}' , -- FBillNo - varchar(50)
+                                                          GETDATE() , -- FDate - datetime
+                                                          '{2}' , -- FSalesmanId - int
+                                                          '{3}' , -- FBillerId - int
+                                                          '{4}' , -- FRemark - varchar(1000)
+                                                          0 , -- FIsDeleted - bit
+                                                          GETDATE() , -- FCreatedOn - datetime
+                                                          0 -- FStatus - int
+                                                        )", model.Form.FId, model.Form.FBillNo,
+                                                        model.Form.FSalesmanId, model.Form.FSalesmanId, model.Form.FRemark);
+                        sqlList.Add(insertSql);
+                    }
+                    //insert second
+                    model.Entry.ForEach(row =>
+                    {
+                        sqlList.Add(string.Format(@"insert into	dbo.t_CalcBillEntry
+                                                        ( FId ,
+                                                          FRecordId ,
+                                                          FRecordEntryId ,
+                                                          FCommissionPrice ,
+                                                          FExpand ,
+                                                          FTotal
+                                                        )
+                                                VALUES  ( '{0}' , -- FId - int
+                                                          '{1}' , -- FRecordId - int
+                                                          '{2}' , -- FRecordEntryId - int
+                                                          '{3}' , -- FCommissionPrice - decimal
+                                                          '{4}' , -- FExpand - decimal
+                                                          '{5}'  -- FTotal - decimal
+                                                        )", model.Form.FId, row.FRecordId, row.FRecordEntryId, row.FCommissionPrice, row.FExpand, row.FTotal));
+
+                        sqlList.Add(string.Format(@"update t_Bill set FIsCalc =1 Where FId = {0} ", row.FRecordId));
                     });
-                }
-                else
-                {
-                    newId = new IDHelper(_dbContext).GenId(typeof(T_Bill).GetAttributeValue((TableAttribute dna) => dna.Name));
-                    model.Form.FBillerId = model.Form.FSalesmanId;
-                    model.Form.FIsDeleted = false;
-                    model.Form.FStatus = CommonEnum.AuditState.No;
-                    model.Form.FCreatedOn = DateTime.Now;
-                    model.Form.FId = newId;
-                }
-                listEntry.ForEach(f =>
-                {
-                    f.FId = model.Form.FId;
-                });
 
-
-                using (var transaction = _dbContext.Database.BeginTransaction())
-                {
-                    if (newId <= 0)
+                    if (sqlList.Count > 0)
                     {
-                        var form = _dbContext.T_Bill.Where(f => f.FId == model.Form.FId).FirstOrDefault();
-                        form.FBillerId = model.Form.FSalesmanId;
-                        form.FCustomId = model.Form.FCustomId;
-                        form.FSalesmanId = model.Form.FSalesmanId;
-                        form.FConfirmerId = model.Form.FConfirmerId;
-                        form.FDate = model.Form.FDate;
-                        form.FIsCommission = model.Form.FIsCommission;
-                        form.FRemark = model.Form.FRemark;
-                        form.FIsDeleted = false;
-                        form.FStatus = model.Form.FStatus;
-                        form.FCreatedOn = model.Form.FCreatedOn;
+                        _dbContext.Database.BeginTransaction();
+                        int effectRow = 0;
+                        sqlList.ForEach(f =>
+                        {
+                            effectRow += _dbContext.Database.ExecuteSqlCommand(f);
+                        });
+                        _dbContext.Database.CommitTransaction();
+                        response.SetData($"success|{model.Form.FId}");
+                        response.SetSuccess();
                     }
                     else
                     {
-                        _dbContext.T_Bill.Add(model.Form);
+                        response.SetFailed("未能查询到要更新的数据!");
                     }
-                    listEntry.ForEach(f =>
-                    {
-                        _dbContext.T_BillEntry.Add(new T_BillEntry()
-                        {
-                            FContractPrice = f.FContractPrice,
-                            FDcRate = f.FDcRate,
-                            FId = f.FId,
-                            FModule = f.FModule,
-                            FPoints = f.FPoints,
-                            FStandardPrice = f.FStandardPrice,
-                            FSoftwareId = f.FSoftwareId
-                        }); ;
-                    });
-
-                    _dbContext.SaveChanges();
-                    transaction.Commit();
-
-                    response.SetData($"success|{model.Form.FId}");
-                    response.SetSuccess();
-                    return Ok(response);
                 }
+                return Ok(response);
+
             }
             catch (Exception e)
             {
@@ -343,9 +249,9 @@ namespace Commission.Api.Controllers.Api.V1.Bus
         {
             using (_dbContext)
             {
-                var entity = _dbContext.vBillRecord.FirstOrDefault(x => x.FId == id);
+                var entity = _dbContext.vCalcBillRecord.Where(x => x.FId == id).ToList();
                 var response = ResponseModelFactory.CreateInstance;
-                response.SetData(_mapper.Map<vBillRecord, BillRecordJsonModel>(entity));
+                response.SetData(entity.Select(_mapper.Map<vCalcBillRecord, CalcBillRecordJsonModel>));
                 return Ok(response);
             }
         }
@@ -357,9 +263,9 @@ namespace Commission.Api.Controllers.Api.V1.Bus
             using (_dbContext)
             {
                 var response = ResponseModelFactory.CreateInstance;
-                var query = _dbContext.T_BillEntry.Where(x => x.FId == id);
+                var query = _dbContext.T_CalcBillEntry.Where(x => x.FId == id);
                 var list = query.ToList();
-                var data = list.Select(_mapper.Map<T_BillEntry, BillRecordEntryJsonModel>);
+                var data = list.Select(_mapper.Map<T_CalcBillEntry, BillRecordEntryJsonModel>);
                 response.SetData(data);
                 return Ok(response);
             }
@@ -380,63 +286,27 @@ namespace Commission.Api.Controllers.Api.V1.Bus
         }
 
         [HttpPost]
-        public string exportExcel(BillRecordRequestPayload payload)
+        public string exportExcel(CalcBillRecordRequestPayload payload)
         {
             try
             {
                 string queryStr = string.Empty;
                 if (!string.IsNullOrEmpty(payload.Kw))
                 {
-                    queryStr += string.Format(@" AND (FBillNo like '%{0}%' OR FRemark like '%{0}%')", payload.Kw.Trim());
-                }
-                if (payload.IsDeleted > CommonEnum.IsDeleted.All)
-                {
-                    queryStr += string.Format(@" AND  FIsDeleted = {0}", payload.IsDeleted.GetHashCode());
-                }
-                if (payload.IsCommission > CommonEnum.YesOrNo.All)
-                {
-                    queryStr += string.Format(@" AND  FIsCommission = {0}", payload.IsCommission.GetHashCode());
-                }
-                if (payload.Status > CommonEnum.AuditState.All)
-                {
-                    queryStr += string.Format(@" AND  FStatus = {0}", payload.Status.GetHashCode());
-                }
-                if (payload.CustomId > 0)
-                {
-                    queryStr += string.Format(@" AND  FCustomId = {0}", payload.CustomId);
+                    queryStr += $"AND (FBillNo like '%{payload.Kw}%')";
                 }
                 if (payload.SalesmanId > 0)
                 {
-                    queryStr += string.Format(@" AND  FSalesmanId = {0}", payload.SalesmanId);
-                }
-                if (payload.ConfirmerId > 0)
-                {
-                    queryStr += string.Format(@" AND  FConfirmerId = {0}", payload.ConfirmerId);
+                    queryStr += $"AND  FSalesmanId ='{payload.SalesmanId}'";
                 }
                 if (!string.IsNullOrEmpty(payload.BeginDate))
                 {
-                    queryStr += string.Format(@" AND  FDate >= '{0}'", payload.BeginDate);
+                    queryStr += $"AND  FDate >='{payload.BeginDate}'";
                 }
                 if (!string.IsNullOrEmpty(payload.EndDate))
                 {
-                    queryStr += string.Format(@" AND  FDate <= '{0}'", string.Format(@"{0} 23:59:59", payload.EndDate));
+                    queryStr += $"AND  FDate <='{payload.EndDate} 23:59:59' ";
                 }
-
-                #region 一般用户
-                if (AuthContextService.CurrentUser.UserType == UserType.GeneralUser)
-                {
-                    var entity = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.UserId == AuthContextService.CurrentUser.Guid);
-
-                    if (entity != null)
-                    {
-                        queryStr += string.Format(@" AND  FSalesmanId = {0}", payload.SalesmanId);
-                    }
-                    else
-                    {
-                        queryStr += string.Format(@" AND  FSalesmanId = -1");
-                    }
-                }
-                #endregion
 
                 var fileType = "xlsx";
                 var path = string.Format(@"{0}/excels", _hostingEnvironment.WebRootPath);
@@ -449,7 +319,7 @@ namespace Commission.Api.Controllers.Api.V1.Bus
 
                 using (_dbContext)
                 {
-                    DataTable config = _dbContext.Database.SqlQuery(string.Format(@"SELECT * FROM dbo.BaseViewConfig WHERE FViewId =4
+                    DataTable config = _dbContext.Database.SqlQuery(string.Format(@"SELECT * FROM dbo.BaseViewConfig WHERE FViewId =1
                 AND ISNULL(FIsClose,0)=0 ORDER BY FNo"));
                     string columns = string.Empty;
                     if (config != null)
@@ -469,13 +339,13 @@ namespace Commission.Api.Controllers.Api.V1.Bus
                         columns = "*";
                     }
 
-                    DataTable source = _dbContext.Database.SqlQuery(string.Format(@"select {0} from vBillRecord where 1=1 {1}", columns, queryStr));
+                    DataTable source = _dbContext.Database.SqlQuery(string.Format(@"select {0} from vCalcBillRecord where 1=1 {1}", columns, queryStr));
                     if (source != null && source.Rows.Count > 0)
                     {
                         string errorMsg = "";
 
                         DataSet ds = new DataSet();
-                        source.TableName = "销售录入清单";
+                        source.TableName = "计算单清单";
                         ds.Tables.Add(source);
                         List<int> result = new ExcelHelper(path).DataTableToExcel(ds, true, ref errorMsg);
                         if (result.Count > 0)
@@ -543,20 +413,29 @@ namespace Commission.Api.Controllers.Api.V1.Bus
             using (_dbContext)
             {
                 var response = ResponseModelFactory.CreateInstance;
-                DataTable dtCheck = _dbContext.Database.SqlQuery(string.Format(@"SELECT 1 FROM dbo.vBillRecord WHERE (ISNULL(FStatus,0) = 1
-                OR ISNULL(FIsCalc,0) =1) AND FId IN ({0}) ", ids));
+                DataTable dtCheck = _dbContext.Database.SqlQuery(string.Format(@"SELECT 1 FROM dbo.t_CalcBill WHERE ISNULL(FStatus,0) = 1 and FId IN ({0})", ids));
                 if (dtCheck != null && dtCheck.Rows.Count > 0)
                 {
-                    response.SetFailed("发现记录已经被审批或已被计算提成,无法删除!");
+                    response.SetFailed("发现记录已经被审批,无法删除!");
                     return response;
                 }
                 else
                 {
                     List<string> sqlList = new List<string>();
                     sqlList.Clear();
-                    var sql = string.Format("Delete From T_Bill WHERE FId IN ({0})", ids);
-                    sqlList.Add(sql); 
-                    sql = string.Format("Delete From T_BillEntry WHERE FId IN ({0})", ids);
+                    var sql = string.Format("Delete From T_CalcBill WHERE FId IN ({0})", ids);
+                    sqlList.Add(sql);
+
+                    DataTable dt = _dbContext.Database.SqlQuery(string.Format("select ISNULL(FRecordId,0)FRecordId from T_CalcBillEntry where FId IN ({0})", ids));
+                    string sourceBillId = "-1";
+                    if (dt != null && dt.Rows.Count > 0)
+                    {
+                        sourceBillId = dt.Rows[0]["FRecordId"].ToString();
+                    }
+
+                    sql = string.Format("Delete From T_CalcBillEntry WHERE FId IN ({0})", ids);
+                    sqlList.Add(sql);
+                    sql = string.Format("Update T_Bill Set FIsCalc =0 WHERE FId IN ({0})", sourceBillId);
                     sqlList.Add(sql);
 
                     _dbContext.Database.BeginTransaction();
@@ -578,7 +457,7 @@ namespace Commission.Api.Controllers.Api.V1.Bus
             {
                 var parameters = ids.Split(",").Select((id, index) => new SqlParameter(string.Format("@p{0}", index), id)).ToList();
                 var parameterNames = string.Join(", ", parameters.Select(p => p.ParameterName));
-                var sql = string.Format("UPDATE T_Bill SET FStatus=@Status WHERE FId IN ({0})", parameterNames);
+                var sql = string.Format("UPDATE T_CalcBill SET FStatus=@Status WHERE FId IN ({0})", parameterNames);
                 parameters.Add(new SqlParameter("@Status", (int)status));
                 _dbContext.Database.ExecuteSqlCommand(sql, parameters);
                 var response = ResponseModelFactory.CreateInstance;

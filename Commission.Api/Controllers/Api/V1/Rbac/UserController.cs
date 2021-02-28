@@ -323,45 +323,51 @@ namespace Commission.Api.Controllers.Api.V1.Rbac
             var response = ResponseModelFactory.CreateInstance;
             using (_dbContext)
             {
-                
+
                 var entity = _dbContext.DncUser.FirstOrDefault(x => x.FGuid == model.UserId);
                 if (entity == null)
                 {
                     response.SetFailed("用户不存在");
                     return Ok(response);
                 }
-                var entity1 = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.SalesmanId == model.SalesmanId);
-                if (model.Id < 0)
+                if (model.SalesmanId > 0)
                 {
-                    if (entity1 != null)
+                    var entity1 = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.SalesmanId == model.SalesmanId);
+                    if (model.Id < 0)
                     {
-                        response.SetFailed("业务员已存在绑定关系,请先进行解绑!");
-                        return Ok(response);
+                        if (entity1 != null)
+                        {
+                            response.SetFailed("业务员已存在绑定关系,请先进行解绑!");
+                            return Ok(response);
+                        }
+                        else
+                        {
+                            entity1 = _mapper.Map<UserSalesmanCreateViewModel, UserSalesmanMapping>(model);
+                        }
                     }
                     else
                     {
-                        entity1 = _mapper.Map<UserSalesmanCreateViewModel, UserSalesmanMapping>(model);
+                        entity1 = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.UserId == model.UserId);
+                        if (!entity1.SalesmanId.Equals(model.SalesmanId))
+                        {
+                            _dbContext.Entry(entity1).State = EntityState.Deleted;
+                            _dbContext.SaveChanges();
+                        }
                     }
+
+                    entity1.Id = new IDHelper(_dbContext).GenId(typeof(UserSalesmanMapping).GetAttributeValue((TableAttribute dna) => dna.Name));
+                    entity1.UserId = model.UserId;
+                    entity1.SalesmanId = model.SalesmanId;
+                    entity1.CreatedOn = DateTime.Now;
+                    entity1.CreatedByUserGuid = AuthContextService.CurrentUser.Guid;
+                    entity1.CreatedByUserName = AuthContextService.CurrentUser.DisplayName;
+                    _dbContext.UserSalesmanMapping.Add(entity1);
+                    _dbContext.SaveChanges();
                 }
                 else
                 {
-                    entity1 = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.UserId == model.UserId);
-                    if (!entity1.SalesmanId.Equals(model.SalesmanId))
-                    {
-                        _dbContext.Entry(entity1).State = EntityState.Deleted;
-                        _dbContext.SaveChanges();
-                    }
+                    _dbContext.Database.ExecuteSqlCommand(string.Format(@"delete from UserSalesmanMapping where Id = '{0}'", model.Id));
                 }
-
-                entity1.Id = new IDHelper(_dbContext).GenId(typeof(UserSalesmanMapping).GetAttributeValue((TableAttribute dna) => dna.Name));
-                entity1.UserId = model.UserId;
-                entity1.SalesmanId = model.SalesmanId;
-                entity1.CreatedOn = DateTime.Now;
-                entity1.CreatedByUserGuid = AuthContextService.CurrentUser.Guid;
-                entity1.CreatedByUserName = AuthContextService.CurrentUser.DisplayName;
-                _dbContext.UserSalesmanMapping.Add(entity1);
-                _dbContext.SaveChanges();
-                //transaction.Commit();
                 response = ResponseModelFactory.CreateInstance;
                 return Ok(response);
 

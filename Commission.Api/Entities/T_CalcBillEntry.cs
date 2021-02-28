@@ -7,17 +7,16 @@ using System.Threading.Tasks;
 
 namespace Commission.Api.Entities
 {
-    public class T_BillEntry
+    public class T_CalcBillEntry
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int FEntryID { get; set; }
         public int FId { get; set; }
-        public int FSoftwareId { get; set; }
-        public string FModule { get; set; }
-        public decimal FContractPrice { get; set; }
-        public decimal FStandardPrice { get; set; }
-        public decimal FDcRate { get; set; }
-        public int FPoints { get; set; } 
+        public int FRecordId { get; set; }
+        public int FRecordEntryId { get; set; }
+        public decimal FCommissionPrice { get; set; }
+        public decimal FExpand { get; set; }
+        public decimal FTotal { get; set; }
     }
 }

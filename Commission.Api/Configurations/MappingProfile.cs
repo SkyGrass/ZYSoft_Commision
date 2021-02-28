@@ -89,7 +89,11 @@ namespace Commission.Api.Configurations
             #endregion
 
             #region vBillRecord
-            CreateMap<vBillRecord, BillRecordJsonModel>(); 
+            CreateMap<vBillRecord, BillRecordJsonModel>();
+            #endregion
+
+            #region vBillRecordList
+            CreateMap<vBillRecordList, BillRecordListJsonModel>();
             #endregion
 
         }
