@@ -10,9 +10,10 @@ namespace Commission.Api.Entities
 {
     public class vBillRecord
     {
-        [Key]
+       
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public int FId { get; set; }
+        [Key]
         public int FEntryId { get; set; }
         public string FBillNo { get; set; }
         public DateTime FDate { get; set; }

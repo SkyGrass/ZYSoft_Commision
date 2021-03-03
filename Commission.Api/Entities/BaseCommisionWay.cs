@@ -5,9 +5,11 @@ using static Commission.Api.Entities.Enums.CommonEnum;
 
 namespace Commission.Api.Entities
 {
+
     /// <summary>
     /// 提成比例方式实体类
     /// </summary>
+    [Table("BaseCommisionWay")]
     public class BaseCommisionWay
     {
         /// <summary>
@@ -31,7 +33,7 @@ namespace Commission.Api.Entities
         /// 
         /// </summary>
         [Column(TypeName = "nvarchar(max)")]
-        public string Description { get; set; } 
+        public string Description { get; set; }
         /// <summary>
         /// 
         /// </summary>

@@ -17,9 +17,12 @@ namespace Commission.Api.ViewModels.Report
         public string FCustomName { get; set; }
         public string FSoftwareCode { get; set; }
         public string FSoftwareName { get; set; }
+        public string FModule { get; set; }
         public decimal FContractPrice { get; set; }
         public decimal FStandardPrice { get; set; }
+        public decimal FExpand { get; set; }
         public decimal FCommissionPrice { get; set; }
+        public decimal FTotal { get; set; }
         public DateTime FDate { get; set; }
     }
 }

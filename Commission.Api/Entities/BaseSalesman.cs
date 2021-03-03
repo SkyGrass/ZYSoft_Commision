@@ -9,6 +9,7 @@ namespace Commission.Api.Entities
     /// <summary>
     /// 业务员档案实体类
     /// </summary>
+    [Table("BaseSalesman")]
     public class BaseSalesman
     {
         /// <summary>

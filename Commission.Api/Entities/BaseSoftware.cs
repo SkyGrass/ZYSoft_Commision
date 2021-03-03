@@ -8,6 +8,7 @@ namespace Commission.Api.Entities
     /// <summary>
     /// 软件产品档案实体类
     /// </summary>
+    [Table("BaseSoftware")]
     public class BaseSoftware
     {
         /// <summary>

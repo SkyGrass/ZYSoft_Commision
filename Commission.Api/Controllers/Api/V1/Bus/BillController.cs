@@ -97,19 +97,12 @@ namespace Commission.Api.Controllers.Api.V1.Bus
                     query = query.Where(x => x.FDate.CompareTo(DateTime.Parse(string.Format(@"{0} 23:59:59", payload.EndDate))) <= 0);
                 }
 
-                #region 一般用户
-                if (AuthContextService.CurrentUser.UserType == UserType.GeneralUser)
-                {
-                    var entity = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.UserId == AuthContextService.CurrentUser.Guid);
+                #region  
+                var entity = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.UserId == AuthContextService.CurrentUser.Guid);
 
-                    if (entity != null)
-                    {
-                        query = query.Where(x => x.FSalesmanId == entity.SalesmanId);
-                    }
-                    else
-                    {
-                        query = query.Where(x => x.FSalesmanId == -1); //没有绑定的一般用户
-                    }
+                if (entity != null)
+                {
+                    query = query.Where(x => x.FSalesmanId == entity.SalesmanId);
                 }
                 #endregion
 
@@ -132,10 +125,40 @@ namespace Commission.Api.Controllers.Api.V1.Bus
 
                 var sql = string.Format("select * from vBillRecord  where fid in ({0})", ids);
                 var list = _dbContext.Database.SqlQuery(sql).ToList<vBillRecord>();
-                var data = list.Select(_mapper.Map<vBillRecord, BillRecordJsonModel>); response.SetData(data);
+                var data = list.Select(_mapper.Map<vBillRecord, BillRecordJsonModel>).ToList();
+                data.ForEach(row =>
+                {
+                    row.FDcRate = getRealCommision(row.FId, row.FEntryId);
+                });
+                response.SetData(data);
                 return Ok(response);
 
             }
+        }
+
+        private decimal getRealCommision(int id, int entryId)
+        {
+            decimal commisionValue = 0;
+            try
+            {
+
+                string sql = string.Format(@"select ISNULL(t2.Proportion,0)/100 as FDcRate FROM t_BillEntry t1 left join 
+                    BaseComparison t2 on t1.FSoftwareId  =t2.SoftwareId where t1.FDcRate >= t2.StartPeriod and t1.FDcRate<=t2.EndPeriod 
+                    and t1.FId ='{0}' and t1.FEntryId = '{1}'", id, entryId);
+                DataTable dt = _dbContext.Database.SqlQuery(sql);
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    commisionValue = Convert.ToDecimal(dt.Rows[0]["FDcRate"].ToString());
+                }
+
+                return commisionValue;
+
+            }
+            catch (Exception)
+            {
+                return commisionValue;
+            }
+
         }
 
         [HttpPost]
@@ -241,73 +264,96 @@ namespace Commission.Api.Controllers.Api.V1.Bus
             var response = ResponseModelFactory.CreateInstance;
             try
             {
-                List<BillEntryCreateModel> listEntry = _mapper.Map<List<T_BillEntry>, List<BillEntryCreateModel>>(model.Entry);
-                int newId = 0;
-                if (model.Form.FId > 0)
+                using (_dbContext)
                 {
-                    _dbContext.Entry(model.Form).State = EntityState.Modified;
-                    var entry = _dbContext.T_BillEntry.Where(f => f.FId == model.Form.FId).ToList();
-                    entry.ForEach(ele =>
+                    List<string> sqlList = new List<string>();
+                    sqlList.Clear();
+                    if (model.Form.FId > 0) //update
                     {
-                        _dbContext.Entry(ele).State = EntityState.Modified;
+                        //delete first 
+                        string delSql = string.Format(@"delete from t_BillEntry where FId = {0}", model.Form.FId);
+                        sqlList.Add(delSql);
+                        string updateSql = string.Format(@"Update t_Bill Set FDate='{0}', FCustomId ='{1}',
+                                FConfirmerId='{2}',FSalesmanId='{3}',FRemark= '{4}',FIsCommission ='{5}' Where FId ='{6}'",
+                                model.Form.FDate, model.Form.FCustomId, model.Form.FSalesmanId, model.Form.FConfirmerId,
+                           model.Form.FRemark, model.Form.FIsCommission, model.Form.FId);
+                        sqlList.Add(updateSql);
+                    }
+                    else
+                    {  //add
+                        int newId = new IDHelper(_dbContext).GenId(typeof(T_CalcBill).GetAttributeValue((TableAttribute dna) => dna.Name));
+                        model.Form.FId = newId;
+                        string insertSql = string.Format(@"INSERT INTO dbo.t_Bill
+                                                        (   [FId]
+                                                           ,[FBillNo]
+                                                           ,[FDate]
+                                                           ,[FCustomId]
+                                                           ,[FSalesmanId]
+                                                           ,[FBillerId]
+                                                           ,[FIsCommission]
+                                                           ,[FConfirmerId]
+                                                           ,[FRemark]
+                                                           ,[FIsDeleted]
+                                                           ,[FCreatedOn]
+                                                           ,[FStatus]
+                                                        )
+                                                VALUES  ( '{0}' , -- FId - int
+                                                          '{1}' , -- FBillNo - varchar(50)
+                                                          GETDATE() , -- FDate - datetime
+                                                          '{2}', -- FCustomId -int
+                                                          '{3}' , -- FSalesmanId - int
+                                                          '{3}' , -- FBillerId - int
+                                                          '{4}' , -- FIsCommission - bool
+                                                          '{5}' , -- FConfirmerId - int
+                                                          '{6}' , -- FRemark - varchar(1000)
+                                                          0 , -- FIsDeleted - bit
+                                                          GETDATE() , -- FCreatedOn - datetime
+                                                          0 -- FStatus - int
+                                                        )", model.Form.FId, model.Form.FBillNo, model.Form.FCustomId,
+                                                        model.Form.FSalesmanId, model.Form.FIsCommission, model.Form.FSalesmanId, model.Form.FRemark);
+                        sqlList.Add(insertSql);
+                    }
+                    //insert second
+                    model.Entry.ForEach(row =>
+                    {
+                        sqlList.Add(string.Format(@"insert into	dbo.t_BillEntry
+                                                        (   [FId]
+                                                           ,[FSoftwareId]
+                                                           ,[FModule]
+                                                           ,[FContractPrice]
+                                                           ,[FStandardPrice]
+                                                           ,[FDcRate]
+                                                           ,[FPoints]
+                                                        )
+                                                VALUES  ( '{0}' , -- FId - int
+                                                          '{1}' , -- FSoftwareId - int
+                                                          '{2}' , -- FModule - varchar
+                                                          '{3}' , -- FContractPrice - decimal
+                                                          '{4}' , -- FStandardPrice - decimal
+                                                          '{5}' , -- FDcRate - decimal
+                                                          '{6}'  -- FPoints -int
+                                                        )", model.Form.FId, row.FSoftwareId, row.FModule, row.FContractPrice, row.FStandardPrice, row.FDcRate, row.FPoints));
                     });
-                }
-                else
-                {
-                    newId = new IDHelper(_dbContext).GenId(typeof(T_Bill).GetAttributeValue((TableAttribute dna) => dna.Name));
-                    model.Form.FBillerId = model.Form.FSalesmanId;
-                    model.Form.FIsDeleted = false;
-                    model.Form.FStatus = CommonEnum.AuditState.No;
-                    model.Form.FCreatedOn = DateTime.Now;
-                    model.Form.FId = newId;
-                }
-                listEntry.ForEach(f =>
-                {
-                    f.FId = model.Form.FId;
-                });
 
-
-                using (var transaction = _dbContext.Database.BeginTransaction())
-                {
-                    if (newId <= 0)
+                    if (sqlList.Count > 0)
                     {
-                        var form = _dbContext.T_Bill.Where(f => f.FId == model.Form.FId).FirstOrDefault();
-                        form.FBillerId = model.Form.FSalesmanId;
-                        form.FCustomId = model.Form.FCustomId;
-                        form.FSalesmanId = model.Form.FSalesmanId;
-                        form.FConfirmerId = model.Form.FConfirmerId;
-                        form.FDate = model.Form.FDate;
-                        form.FIsCommission = model.Form.FIsCommission;
-                        form.FRemark = model.Form.FRemark;
-                        form.FIsDeleted = false;
-                        form.FStatus = model.Form.FStatus;
-                        form.FCreatedOn = model.Form.FCreatedOn;
+                        _dbContext.Database.BeginTransaction();
+                        int effectRow = 0;
+                        sqlList.ForEach(f =>
+                        {
+                            effectRow += _dbContext.Database.ExecuteSqlCommand(f);
+                        });
+                        _dbContext.Database.CommitTransaction();
+                        response.SetData($"success|{model.Form.FId}");
+                        response.SetSuccess();
                     }
                     else
                     {
-                        _dbContext.T_Bill.Add(model.Form);
+                        response.SetFailed("未能查询到要更新的数据!");
                     }
-                    listEntry.ForEach(f =>
-                    {
-                        _dbContext.T_BillEntry.Add(new T_BillEntry()
-                        {
-                            FContractPrice = f.FContractPrice,
-                            FDcRate = f.FDcRate,
-                            FId = f.FId,
-                            FModule = f.FModule,
-                            FPoints = f.FPoints,
-                            FStandardPrice = f.FStandardPrice,
-                            FSoftwareId = f.FSoftwareId
-                        }); ;
-                    });
-
-                    _dbContext.SaveChanges();
-                    transaction.Commit();
-
-                    response.SetData($"success|{model.Form.FId}");
-                    response.SetSuccess();
-                    return Ok(response);
                 }
+                return Ok(response);
+
             }
             catch (Exception e)
             {
@@ -377,6 +423,24 @@ namespace Commission.Api.Controllers.Api.V1.Bus
             }
             response = UpdateAuditStatus(AuditState.Yes, id);
             return Ok(response);
+        }
+
+        [HttpGet("{id}")]
+        [ProducesResponseType(200)]
+        public IActionResult UnAudit(string id)
+        {
+            var response = ResponseModelFactory.CreateInstance;
+            DataTable dtCheck = _dbContext.Database.SqlQuery(string.Format(@"SELECT 1 FROM dbo.vBillRecord WHERE ISNULL(FIsCalc,0) =1 AND FId IN ({0}) ", id));
+            if (dtCheck != null && dtCheck.Rows.Count > 0)
+            {
+                response.SetFailed("发现记录已被计算提成,请先删除计算单!");
+                return Ok(response);
+            }
+            else
+            {
+                response = UpdateAuditStatus(AuditState.No, id);
+                return Ok(response);
+            }
         }
 
         [HttpPost]
@@ -555,7 +619,7 @@ namespace Commission.Api.Controllers.Api.V1.Bus
                     List<string> sqlList = new List<string>();
                     sqlList.Clear();
                     var sql = string.Format("Delete From T_Bill WHERE FId IN ({0})", ids);
-                    sqlList.Add(sql); 
+                    sqlList.Add(sql);
                     sql = string.Format("Delete From T_BillEntry WHERE FId IN ({0})", ids);
                     sqlList.Add(sql);
 

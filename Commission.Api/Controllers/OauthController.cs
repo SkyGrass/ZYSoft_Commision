@@ -14,6 +14,7 @@ namespace Commission.Api.Controllers
     /// <summary>
     /// 
     /// </summary>
+    
     [Route("api/[controller]/[action]")]
     [ApiController]
     public class OauthController : ControllerBase

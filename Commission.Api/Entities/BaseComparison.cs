@@ -5,9 +5,11 @@ using static Commission.Api.Entities.Enums.CommonEnum;
 
 namespace Commission.Api.Entities
 {
+
     /// <summary>
     /// 档案实体类
     /// </summary>
+    [Table("BaseComparison")]
     public class BaseComparison
     {
         /// <summary>

@@ -176,6 +176,8 @@ namespace Commission.Api.Controllers.Api.V1.Base
                 entity.ModifiedOn = DateTime.Now;
                 entity.Status = model.Status;
                 entity.Description = model.Description;
+                entity.StartPeriod = model.StartPeriod;
+                entity.EndPeriod = model.EndPeriod;
                 _dbContext.SaveChanges();
                 response.SetSuccess();
                 return Ok(response);

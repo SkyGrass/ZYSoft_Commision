@@ -84,19 +84,12 @@ namespace Commission.Api.Controllers.Api.V1.Bus
                     query = query.Where(x => x.FDate.CompareTo(DateTime.Parse(string.Format(@"{0} 23:59:59", payload.EndDate))) <= 0);
                 }
 
-                #region 一般用户
-                if (AuthContextService.CurrentUser.UserType == UserType.GeneralUser)
-                {
-                    var entity = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.UserId == AuthContextService.CurrentUser.Guid);
+                #region 一般用户 
+                var entity = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.UserId == AuthContextService.CurrentUser.Guid);
 
-                    if (entity != null)
-                    {
-                        query = query.Where(x => x.FSalesmanId == entity.SalesmanId);
-                    }
-                    else
-                    {
-                        query = query.Where(x => x.FSalesmanId == -1); //没有绑定的一般用户
-                    }
+                if (entity != null)
+                {
+                    query = query.Where(x => x.FSalesmanId == entity.SalesmanId);
                 }
                 #endregion
 
@@ -270,6 +263,8 @@ namespace Commission.Api.Controllers.Api.V1.Bus
                 return Ok(response);
             }
         }
+
+
 
         [HttpGet("{id}")]
         [ProducesResponseType(200)]
