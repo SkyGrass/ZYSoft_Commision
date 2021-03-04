@@ -53,7 +53,7 @@ namespace Commission.Api.Controllers.Api.V1.Base
                 var query = _dbContext.BaseSoftware.AsQueryable();
                 if (!string.IsNullOrEmpty(payload.Kw))
                 {
-                    query = query.Where(x => x.Code.Contains(payload.Kw.Trim()));
+                    query = query.Where(x => x.Code.Contains(payload.Kw.Trim()) || x.Name.Contains(payload.Kw.Trim()));
                 }
                 if (payload.IsDeleted > CommonEnum.IsDeleted.All)
                 {
@@ -322,8 +322,7 @@ namespace Commission.Api.Controllers.Api.V1.Base
                 {
                     var parameters = ids.Split(",").Select((id, index) => new SqlParameter(string.Format("@p{0}", index), id)).ToList();
                     var parameterNames = string.Join(", ", parameters.Select(p => p.ParameterName));
-                    var sql = string.Format("UPDATE DncSoftware SET IsDeleted=@IsDeleted WHERE Id IN ({0})", parameterNames);
-                    parameters.Add(new SqlParameter("@IsDeleted", (int)isDeleted));
+                    var sql = string.Format("Delete From  BaseSoftware WHERE Id IN ({0})", parameterNames);
                     _dbContext.Database.ExecuteSqlCommand(sql, parameters);
                     response.SetSuccess();
                     return response;

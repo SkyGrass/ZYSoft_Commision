@@ -78,6 +78,15 @@ namespace Commission.Api.Controllers.Api.V1.Report
                     query = query.Where(x => x.FDate.CompareTo(DateTime.Parse(string.Format(@"{0} 23:59:59", payload.EndDate))) <= 0);
                 }
 
+                #region  
+                var entity = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.UserId == AuthContextService.CurrentUser.Guid);
+
+                if (entity != null)
+                {
+                    query = query.Where(x => x.FSalesmanId == entity.SalesmanId);
+                }
+                #endregion
+
                 var list = query.Paged(payload.CurrentPage, payload.PageSize).ToList();
                 var totalCount = query.Count();
                 var data = list.Select(_mapper.Map<vEmployee, vEmployeePointJsonModel>);

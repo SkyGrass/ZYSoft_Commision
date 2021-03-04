@@ -54,7 +54,7 @@ namespace Commission.Api.Controllers.Api.V1.Base
                 var query = _dbContext.BaseCustom.AsQueryable();
                 if (!string.IsNullOrEmpty(payload.Kw))
                 {
-                    query = query.Where(x => x.Code.Contains(payload.Kw.Trim()));
+                    query = query.Where(x => x.Code.Contains(payload.Kw.Trim()) || x.Name.Contains(payload.Kw.Trim()));
                 }
                 if (payload.IsDeleted > CommonEnum.IsDeleted.All)
                 {
@@ -117,7 +117,7 @@ namespace Commission.Api.Controllers.Api.V1.Base
             {
                 var query = _dbContext.BaseCustom.AsQueryable();
 
-                var list = query.ToList(); 
+                var list = query.ToList();
                 var data = list.Select(_mapper.Map<BaseCustom, CustomSelectJsonModel>);
 
                 return Ok(new
@@ -177,7 +177,8 @@ namespace Commission.Api.Controllers.Api.V1.Base
             }
             using (_dbContext)
             {
-                if (_dbContext.BaseCustom.Count(x => x.Code == model.Code) > 0)
+                if (_dbContext.BaseCustom.Count(x => x.Code == model.Code) > 0 ||
+                    _dbContext.BaseCustom.Count(x => x.Name == model.Name) > 0)
                 {
                     response.SetFailed("客户档案已存在");
                     return Ok(response);

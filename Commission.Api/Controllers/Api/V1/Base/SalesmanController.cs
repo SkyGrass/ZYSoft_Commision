@@ -55,7 +55,7 @@ namespace Commission.Api.Controllers.Api.V1.Base
                 var query = _dbContext.BaseSalesman.AsQueryable();
                 if (!string.IsNullOrEmpty(payload.Kw))
                 {
-                    query = query.Where(x => x.Code.Contains(payload.Kw.Trim()));
+                    query = query.Where(x => x.Code.Contains(payload.Kw.Trim()) || x.Name.Contains(payload.Kw.Trim()));
                 }
                 if (payload.IsDeleted > CommonEnum.IsDeleted.All)
                 {

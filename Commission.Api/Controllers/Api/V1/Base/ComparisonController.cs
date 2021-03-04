@@ -11,6 +11,7 @@ using Commission.Api.ViewModels.Base.Comparison;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Data.SqlClient;
@@ -51,6 +52,14 @@ namespace Commission.Api.Controllers.Api.V1.Base
             using (_dbContext)
             {
                 var query = _dbContext.BaseComparison.AsQueryable();
+                if (!string.IsNullOrEmpty(payload.Kw))
+                {
+                    List<int> ids = _dbContext.BaseSoftware.AsQueryable().
+                        Where(f => f.Name.Contains(payload.Kw.Trim())
+                        || f.Code.Contains(payload.Kw.Trim())).ToList().Select(s => s.Id).ToList();
+
+                    query = query.Where(x => ids.Contains(x.SoftwareId));
+                }
                 if (payload.IsDeleted > CommonEnum.IsDeleted.All)
                 {
                     query = query.Where(x => x.IsDeleted == payload.IsDeleted);
