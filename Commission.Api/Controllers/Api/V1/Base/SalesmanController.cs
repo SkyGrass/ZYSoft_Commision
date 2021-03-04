@@ -41,6 +41,8 @@ namespace Commission.Api.Controllers.Api.V1.Base
             _mapper = mapper;
         }
 
+
+
         /// <summary>
         /// 
         /// </summary>
@@ -78,6 +80,13 @@ namespace Commission.Api.Controllers.Api.V1.Base
             using (_dbContext)
             {
                 var query = _dbContext.BaseSalesman.AsQueryable();
+                var entity = _dbContext.UserSalesmanMapping.FirstOrDefault(x => x.UserId == AuthContextService.CurrentUser.Guid);
+
+                if (entity != null)
+                {
+                    query = query.Where(x => x.Id == entity.SalesmanId);
+                }
+
                 var list = query.ToList();
                 var data = list.Select(_mapper.Map<BaseSalesman, SalesmanSelectJsonModel>);
                 return Ok(new

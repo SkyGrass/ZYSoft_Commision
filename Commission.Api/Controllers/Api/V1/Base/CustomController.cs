@@ -73,6 +73,39 @@ namespace Commission.Api.Controllers.Api.V1.Base
             }
         }
 
+        [HttpPost]
+        public IActionResult GenCode()
+        {
+            using (_dbContext)
+            {
+                try
+                {
+                    DataTable dt = _dbContext.Database.SqlQuery(string.Format(@" SELECT MAX(Code)as Code FROM dbo.BaseCustom"));
+                    string curCode = "1";
+                    if (dt != null && dt.Rows.Count > 0)
+                    {
+                        curCode = dt.Rows[0]["Code"].ToString();
+                        curCode = (int.Parse(curCode) + 1).ToString();
+                    }
+                    return Ok(new
+                    {
+                        state = "success",
+                        data = curCode.PadLeft(4, '0'),
+                        message = ""
+                    });
+                }
+                catch (Exception e)
+                {
+                    return Ok(new
+                    {
+                        state = "error",
+                        data = "",
+                        message = "历史编码中存在格式不统一的数据!"
+                    });
+                }
+            }
+        }
+
         /// <summary>
         /// 
         /// </summary>
