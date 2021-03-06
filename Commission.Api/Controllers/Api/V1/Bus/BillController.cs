@@ -60,8 +60,17 @@ namespace Commission.Api.Controllers.Api.V1.Bus
                 var query = _dbContext.vBillRecord.AsQueryable();
                 if (!string.IsNullOrEmpty(payload.Kw))
                 {
-                    query = query.Where(x => x.FBillNo.Contains(payload.Kw.Trim()) ||
-                    x.FRemark.Contains(payload.Kw.Trim()));
+                    var ids = _dbContext.BaseCustom.AsQueryable().Where(f => f.Name.Contains(payload.Kw.Trim()) ||
+                          f.Code.Contains(payload.Kw.Trim())).Select(s => s.Id).ToList();
+                    if (ids.Count() > 0)
+                    {
+                        query = query.Where(x => ids.Contains(x.FCustomId));
+                    }
+                    else
+                    {
+                        query = query.Where(x => x.FBillNo.Contains(payload.Kw.Trim()) ||
+                        x.FRemark.Contains(payload.Kw.Trim()));
+                    }
                 }
                 if (payload.IsDeleted > CommonEnum.IsDeleted.All)
                 {
